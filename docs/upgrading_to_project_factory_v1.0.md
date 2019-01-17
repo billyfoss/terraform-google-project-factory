@@ -1,6 +1,6 @@
-# Upgrading to Project Factory v1.0
+# Upgrading to Project Factory 1.0
 
-The v1.0 release of Project Factory is a backwards incompatible release and
+The 1.0 release of Project Factory is a backwards incompatible release and
 features significant changes, specifically with how G Suite resources are
 managed. A state migration script is provided to update your existing states
 to minimize or eliminate resource re-creations.
@@ -33,7 +33,7 @@ provider "gsuite" {
 
 module "project-factory" {
   source            = "terraform-google-modules/project-factory/google"
-  version           = "v0.3.0"
+  version           = "0.3.0"
   random_project_id = "true"
   name              = "pf-gsuite-migrate-simple"
   org_id            = "${var.org_id}"
@@ -43,7 +43,7 @@ module "project-factory" {
 
 module "project-factory-gsuite" {
   source             = "terraform-google-modules/project-factory/google"
-  version            = "v0.3.0"
+  version            = "0.3.0"
   random_project_id  = "true"
   name               = "pf-gsuite-migrate-group"
   org_id             = "${var.org_id}"
@@ -59,7 +59,7 @@ module "project-factory-gsuite" {
 
 ### Update the project-factory source
 
-Update the project-factory module source to the Project Factory v1.0.0 release.
+Update the project-factory module source to the Project Factory 1.0.0 release.
 
 Note that any projects which depend on G Suite features must be updated to point to the [gsuite-enabled submodule](../modules/gsuite_enabled).
 
@@ -72,8 +72,8 @@ index d876954..ebb3b1e 100755
  
  module "project-factory" {
    source            = "terraform-google-modules/project-factory/google"
--  version           = "v0.3.0"
-+  version           = "v1.0.0"
+-  version           = "0.3.0"
++  version           = "1.0.0"
    random_project_id = "true"
    name              = "pf-gsuite-migrate-simple"
    org_id            = "${var.org_id}"
@@ -81,9 +81,9 @@ index d876954..ebb3b1e 100755
  
  module "project-factory-gsuite" {
 -  source             = "terraform-google-modules/project-factory/google"
--  version            = "v0.3.0"
+-  version            = "0.3.0"
 +  source             = "terraform-google-modules/project-factory/google//modules/gsuite_enabled"
-+  version            = "v1.0.0"
++  version            = "1.0.0"
    random_project_id  = "true"
    name               = "pf-gsuite-migrate-group"
    org_id             = "${var.org_id}"
