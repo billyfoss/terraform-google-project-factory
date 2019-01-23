@@ -121,7 +121,29 @@ resource "google_project_service" "project_services" {
 }
 
 /******************************************
-  Shared VPC configuration
+  Shared VPC Creation (in host project)
+ *****************************************/
+ # Enable shared VPC hosting in the project
+resource "google_compute_shared_vpc_host_project" "host_project" {
+  count = "${length(var.shared_vpc_networks) > 0 ? 1: 0}"
+
+  project    = "${local.project_id}"
+  depends_on = ["google_project_service.project_services"]
+}
+ # Create the shared VPC networks
+resource "google_compute_network" "shared_network" {
+  count = "${length(var.shared_vpc_networks)}"
+
+  project                 = "${local.project_id}"
+  name                    = "${var.shared_vpc_networks[count.index]}"
+  auto_create_subnetworks = "false"
+
+  depends_on = ["google_project_service.project_services"]
+}
+
+
+/******************************************
+  Shared VPC configuration (in service project)
  *****************************************/
 resource "google_compute_shared_vpc_service_project" "shared_vpc_attachment" {
   count = "${var.shared_vpc != "" ? 1 : 0}"
@@ -131,6 +153,7 @@ resource "google_compute_shared_vpc_service_project" "shared_vpc_attachment" {
 
   depends_on = ["google_project_service.project_services"]
 }
+
 
 /******************************************
   Default compute service account retrieval

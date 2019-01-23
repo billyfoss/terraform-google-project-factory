@@ -54,6 +54,7 @@ variable "shared_vpc" {
 
 variable "billing_account" {
   description = "The ID of the billing account to associate this project with"
+  default = ""
 }
 
 variable "folder_id" {
@@ -86,6 +87,11 @@ variable "credentials_path" {
   description = "Path to a Service Account credentials file with permissions documented in the readme"
 }
 
+variable "shared_vpc_networks" {
+  description = "List of shared VPC networks to create"
+  type = "list"
+  default = []
+}
 variable "shared_vpc_subnets" {
   description = "List of subnets fully qualified subnet IDs (ie. projects/$project_id/regions/$region/subnetworks/$subnet_id)"
   type        = "list"
