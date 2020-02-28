@@ -15,35 +15,35 @@
  */
 
 provider "google" {
-  credentials = "${file(var.credentials_path)}"
-  version     = "~> 1.19"
+  version = "~> 3.6.0"
 }
 
 provider "google-beta" {
-  credentials = "${file(var.credentials_path)}"
-  version     = "~> 1.19"
+  version = "~> 3.6.0"
 }
 
-resource "random_string" "suffix" {
-  length = 5
-  special = false
-  upper = false
+provider "null" {
+  version = "~> 2.1"
 }
+
+provider "random" {
+  version = "~> 2.2"
+}
+
 module "project-factory" {
-  source            = "../../../"
+  source = "../../../"
 
-  name              = "pf-ci-test-minimal-${random_string.suffix.result}"
+  name              = "pf-ci-test-minimal-${var.random_string_for_testing}"
   random_project_id = true
-  domain            = "${var.domain}"
-  org_id            = "${var.org_id}"
-  folder_id         = "${var.folder_id}"
-  billing_account   = "${var.billing_account}"
-  credentials_path  = "${var.credentials_path}"
+  org_id            = var.org_id
+  folder_id         = var.folder_id
+  billing_account   = var.billing_account
 
   activate_apis = [
     "compute.googleapis.com",
     "container.googleapis.com",
   ]
 
+  default_service_account     = "disable"
   disable_services_on_destroy = "false"
 }

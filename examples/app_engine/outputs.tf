@@ -14,17 +14,23 @@
  * limitations under the License.
  */
 
-output "project_info_example" {
-  value       = "${module.project-factory.project_id}"
-  description = "The ID of the created project"
+output "project_id" {
+  description = "The project ID where app engine is created"
+  value       = module.app-engine-project.project_id
 }
 
-output "domain_example" {
-  value       = "${module.project-factory.domain}"
-  description = "The organization's domain"
+output "app_name" {
+  description = "Unique name of the app, usually apps/{PROJECT_ID}."
+  value       = module.app-engine.name
 }
 
-output "app_engine_enabled_example" {
-  value       = "${module.project-factory.app_engine_enabled}"
-  description = "Whether app engine is enabled"
+output "default_hostname" {
+  description = "The default hostname for this app."
+  value       = module.app-engine.default_hostname
 }
+
+output "location_id" {
+  description = "The location app engine is serving from"
+  value       = module.app-engine.location_id
+}
+

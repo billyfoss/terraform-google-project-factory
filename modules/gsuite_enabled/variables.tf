@@ -17,11 +17,11 @@
 variable "lien" {
   description = "Add a lien on the project to prevent accidental deletion"
   default     = "false"
-  type        = "string"
+  type        = string
 }
 
 variable "random_project_id" {
-  description = "Enables project random id generation"
+  description = "Adds a suffix of 4 random characters to the `project_id`"
   default     = "false"
 }
 
@@ -36,6 +36,11 @@ variable "domain" {
 
 variable "name" {
   description = "The name for the project"
+}
+
+variable "project_id" {
+  description = "The ID to give the project. If not provided, the `name` will be used."
+  default     = ""
 }
 
 variable "shared_vpc" {
@@ -53,13 +58,14 @@ variable "folder_id" {
 }
 
 variable "group_name" {
-  description = "A group to control the project by being assigned group_role - defaults to ${project_name}-editors"
+  description = "A group to control the project by being assigned group_role - defaults to $${project_name}-editors"
   default     = ""
 }
 
 variable "create_group" {
+  type        = bool
   description = "Whether to create the group or not"
-  default     = "false"
+  default     = false
 }
 
 variable "group_role" {
@@ -68,7 +74,7 @@ variable "group_role" {
 }
 
 variable "sa_group" {
-  description = "A GSuite group to place the default Service Account for the project in"
+  description = "A G Suite group to place the default Service Account for the project in"
   default     = ""
 }
 
@@ -79,7 +85,7 @@ variable "sa_role" {
 
 variable "activate_apis" {
   description = "The list of apis to activate within the project"
-  type        = "list"
+  type        = list(string)
   default     = ["compute.googleapis.com"]
 }
 
@@ -94,18 +100,25 @@ variable "usage_bucket_prefix" {
 }
 
 variable "credentials_path" {
-  description = "Path to a Service Account credentials file with permissions documented in the readme"
+  description = "Path to a service account credentials file with rights to run the Project Factory. If this file is absent Terraform will fall back to Application Default Credentials."
+  default     = ""
+}
+
+variable "impersonate_service_account" {
+  description = "An optional service account to impersonate. If this service account is not specified, Terraform will fall back to credential file or Application Default Credentials."
+  type        = string
+  default     = ""
 }
 
 variable "shared_vpc_subnets" {
   description = "List of subnets fully qualified subnet IDs (ie. projects/$project_id/regions/$region/subnetworks/$subnet_id)"
-  type        = "list"
-  default     = [""]
+  type        = list(string)
+  default     = []
 }
 
 variable "labels" {
   description = "Map of labels for project"
-  type        = "map"
+  type        = map(string)
   default     = {}
 }
 
@@ -119,8 +132,13 @@ variable "bucket_name" {
   default     = ""
 }
 
+variable "bucket_location" {
+  description = "The location for a GCS bucket to create (optional)"
+  default     = ""
+}
+
 variable "api_sa_group" {
-  description = "A GSuite group to place the Google APIs Service Account for the project in"
+  description = "A G Suite group to place the Google APIs Service Account for the project in"
   default     = ""
 }
 
@@ -129,14 +147,50 @@ variable "auto_create_network" {
   default     = "false"
 }
 
-variable "app_engine" {
-  description = "A map for app engine configuration"
-  type        = "map"
-  default     = {}
-}
-
 variable "disable_services_on_destroy" {
   description = "Whether project services will be disabled when the resources are destroyed"
   default     = "true"
-  type        = "string"
+  type        = string
+}
+
+variable "default_service_account" {
+  description = "Project default service account setting: can be one of `delete`, `deprivilege`, `disable`, or `keep`."
+  default     = "disable"
+  type        = string
+}
+
+variable "disable_dependent_services" {
+  description = "Whether services that are enabled and which depend on this service should also be disabled when this service is destroyed."
+  default     = "true"
+  type        = string
+}
+
+variable "shared_vpc_enabled" {
+  description = "If shared VPC should be used"
+  type        = bool
+  default     = false
+}
+
+variable "python_interpreter_path" {
+  description = "Python interpreter path for precondition check script."
+  type        = string
+  default     = "python3"
+}
+
+variable "budget_amount" {
+  description = "The amount to use for a budget alert"
+  type        = number
+  default     = null
+}
+
+variable "budget_alert_pubsub_topic" {
+  description = "The name of the Cloud Pub/Sub topic where budget related messages will be published, in the form of `projects/{project_id}/topics/{topic_id}`"
+  type        = string
+  default     = null
+}
+
+variable "budget_alert_spent_percents" {
+  description = "A list of percentages of the budget to alert on when threshold is exceeded"
+  type        = list(number)
+  default     = [0.5, 0.7, 1.0]
 }

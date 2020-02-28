@@ -27,14 +27,64 @@ verifier:
       backend: local
 
 suites:
-  - name: full
-    driver:
-      name: terraform
-      command_timeout: 1800
-      root_module_directory: test/fixtures/full
-
   - name: minimal
     driver:
       name: terraform
       command_timeout: 1800
       root_module_directory: test/fixtures/minimal
+  - name: fabric_project
+    driver:
+      name: terraform
+      command_timeout: 1800
+      root_module_directory: test/fixtures/fabric_project
+  - name: app_engine
+    driver:
+      name: terraform
+      command_timeout: 1800
+      root_module_directory: test/fixtures/app_engine
+  - name: budget
+    driver:
+      name: terraform
+      command_timeout: 1800
+      root_module_directory: test/fixtures/budget
+  - name: dynamic_shared_vpc
+    driver:
+      name: terraform
+      command_timeout: 1800
+      root_module_directory: test/fixtures/dynamic_shared_vpc
+    verifier:
+      name: terraform
+      color: true
+      systems:
+        - name: inspec-gcp
+          backend: gcp
+          controls:
+          - secondary
+        - name: local
+          backend: local
+          controls:
+          - svpc
+
+# Disabled due to issue #275
+# (https://github.com/terraform-google-modules/terraform-google-project-factory/issues/275)
+#  - name: full
+#    driver:
+#      name: terraform
+#      command_timeout: 1800
+#      root_module_directory: test/fixtures/full
+#  - name: "shared_vpc_no_subnets"
+#    driver:
+#      name: "terraform"
+#      command_timeout: 1800
+#      root_module_directory: test/fixtures/shared_vpc_no_subnets/
+#    verifier:
+#      name: terraform
+#      systems:
+#        - name: inspec-gcp
+#          backend: gcp
+#          controls:
+#            - gcp
+#        - name: local
+#          backend: local
+#          controls:
+#            - gcloud

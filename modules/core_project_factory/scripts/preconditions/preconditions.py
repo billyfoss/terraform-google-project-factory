@@ -14,15 +14,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+The preconditions script helps avoid situations where a project resource
+can be left in a half deployed and irrecoverable state.
+
+See
+https://github.com/terraform-google-modules/terraform-google-project-factory/blob/master/docs/TROUBLESHOOTING.md
+for common errors that this script helps prevent.
+"""
+
 import argparse
 import json
 import logging
+import re
 import sys
 import os
 
 try:
+    import google.auth
+    from google.auth import impersonated_credentials
     from google.oauth2 import service_account
-    from googleapiclient import discovery, errors
+    from googleapiclient import discovery
 except ImportError as e:
     if os.environ.get('GRACEFUL_IMPORTERROR', '') != '':
         sys.stderr.write("Unable to import Google API dependencies, skipping "
@@ -69,13 +81,7 @@ class Requirements:
 
 class OrgPermissions:
     # Permissions that the service account must have for any organization
-    ALL_PERMISSIONS = [
-        # Typically granted with `roles/resourcemanager.organizationViewer`
-        "resourcemanager.organizations.get",
-
-        # Typically granted with `roles/iam.serviceAccountAdmin`
-        "iam.serviceAccounts.setIamPolicy",
-    ]
+    ALL_PERMISSIONS = []
 
     # Permissions required when the service account is attaching a new project
     # to a shared VPC
@@ -116,13 +122,22 @@ class OrgPermissions:
             self.permissions += self.PARENT_PERMISSIONS
 
     def validate(self, credentials):
+        body = {"permissions": self.permissions}
+        resource = "organizations/" + self.org_id
+
+        # no permissions to validate
+        if len(self.permissions) == 0:
+            return {
+                "type": "Service account permissions on organization",
+                "name": resource,
+                "satisfied": [],
+                "unsatisfied": []
+            }
+
         service = discovery.build(
             'cloudresourcemanager', 'v1',
             credentials=credentials
         )
-
-        body = {"permissions": self.permissions}
-        resource = "organizations/" + self.org_id
 
         request = service.organizations().testIamPermissions(
             resource=resource,
@@ -145,9 +160,6 @@ class FolderPermissions:
     PARENT_PERMISSIONS = [
         # Typically granted with `roles/resourcemanager.projectCreator`
         "resourcemanager.projects.create",
-
-        # Typically granted with `roles/resourcemanager.folderViewer`
-        "resourcemanager.folders.get",
     ]
 
     def __init__(self, folder_id, parent=False):
@@ -165,7 +177,10 @@ class FolderPermissions:
         )
 
         body = {"permissions": self.permissions}
-        resource = "folders/" + self.folder_id
+        if self.folder_id.startswith("folders/"):
+            resource = self.folder_id
+        else:
+            resource = "folders/" + self.folder_id
 
         request = service.folders().testIamPermissions(
             resource=resource,
@@ -238,19 +253,17 @@ class SeedProjectServices:
             'serviceusage', 'v1',
             credentials=credentials
         )
-
         parent = "projects/" + self.project_id
-        request = service.services().list(
-            parent=parent,
-            filter='state:ENABLED'
-        )
+        enabled = []
+        for required_api in self.REQUIRED_APIS:
+            request = service.services().get(
+                name=parent + "/services/" + required_api
+            )
 
-        response = request.execute()
+            response = request.execute()
 
-        enabled = [
-            enabled_svc['config']['name']
-            for enabled_svc in response['services']
-        ]
+            if response['state'] == "ENABLED":
+                enabled.append(required_api)
 
         req = Requirements(
             "Required APIs on service account project",
@@ -287,19 +300,25 @@ class BillingAccount:
         request = service.billingAccounts().testIamPermissions(
             resource=resource,
             body=body)
-        try:
-            response = request.execute()
-        except errors.HttpError:
-            response = {"permissions": []}
+        response = request.execute()
 
         req = Requirements(
             "Service account permissions on billing account",
             resource,
             self.REQUIRED_PERMISSIONS,
-            response["permissions"],
+            response.get("permissions", []),
         )
 
         return req.asdict()
+
+    @classmethod
+    def argument_type(cls,
+                      string,
+                      pat=re.compile(r"[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}")):
+        if not pat.match(string):
+            msg = "%r is not a valid billing account ID format" % string
+            raise argparse.ArgumentTypeError(msg)
+        return string
 
 
 def setup():
@@ -314,9 +333,46 @@ def setup():
     requests_log.propagate = True
 
 
-def get_credentials(credentials_path):
-    credentials = service_account.Credentials.from_service_account_file(
-        credentials_path)
+def get_credentials(credentials_path, impersonate_service_account):
+    """Fetch credentials for verifying Project Factory preconditions.
+
+    Credentials will be loaded from a service account file if present,
+    generated by impersonating the service account provided or from
+    Application Default Credentials otherwise.
+
+    Args:
+        credentials_path: an optional path to service account credentials.
+        impersonate_service_account: an optional service account to
+        impersonate.
+
+    Returns:
+        (credentials, project_id): A tuple containing the credentials and
+        associated project ID.
+    """
+    if credentials_path is not None:
+        # Prefer an explicit credentials file
+        svc_credentials = service_account.Credentials\
+            .from_service_account_file(credentials_path)
+        credentials = (svc_credentials, svc_credentials.project_id)
+    elif impersonate_service_account is not None:
+        try:
+            source_credentials = google.auth.default()
+            credentials = impersonated_credentials.Credentials(
+                source_credentials=source_credentials,
+                target_principal=impersonate_service_account,
+                target_scopes=[
+                    'https://www.googleapis.com/auth/cloud-platform',
+                    'https://www.googleapis.com/auth/userinfo.email'
+                ],
+                lifetime=120)
+        except google.auth.exceptions.RefreshError:
+            raise google.auth.exceptions.DefaultCredentialsError()
+    else:
+        # Fall back to application default credentials
+        try:
+            credentials = google.auth.default()
+        except google.auth.exceptions.RefreshError:
+            raise google.auth.exceptions.DefaultCredentialsError()
 
     return credentials
 
@@ -325,6 +381,7 @@ class EmptyStrAction(argparse.Action):
     """
     Convert empty string values parsed by argparse into None.
     """
+
     def __call__(self, parser, namespace, values, option_string=None):
         values = None if values == '' else values
         setattr(namespace, self.dest, values)
@@ -342,12 +399,18 @@ def argparser():
         help='Enable verbose logging'
     )
     parser.add_argument(
-        '--credentials_path', required=True,
+        '--credentials_path', required=False, action=EmptyStrAction,
         help='The service account credentials to check'
     )
     parser.add_argument(
+        '--impersonate_service_account', required=False, action=EmptyStrAction,
+        help="""A service account to impersonate using
+        default application credentials."""
+    )
+    parser.add_argument(
         '--billing_account', required=True,
-        help='The billing account to be associated with a new project'
+        help='The billing account to be associated with a new project',
+        type=BillingAccount.argument_type
     )
     parser.add_argument(
         '--org_id', required=True, action=EmptyStrAction,
@@ -370,10 +433,13 @@ def validators_for(opts, seed_project):
     Given a set of CLI options, determine which preconditions we need
     to check and generate corresponding validators.
     """
-    validators = [
-        SeedProjectServices(seed_project),
-        BillingAccount(opts.billing_account),
-    ]
+    validators = []
+
+    if seed_project is not None:
+        seed_project_validator = SeedProjectServices(seed_project)
+        validators.append(seed_project_validator)
+
+    validators.append(BillingAccount(opts.billing_account))
 
     if opts.shared_vpc is not None:
         host_vpc_validator = SharedVpcProjectPermissions(opts.shared_vpc)
@@ -398,8 +464,11 @@ def validators_for(opts, seed_project):
 def main(argv):
     try:
         opts = argparser().parse_args(argv[1:])
-        credentials = get_credentials(opts.credentials_path)
-        validators = validators_for(opts, credentials.project_id)
+        (credentials, project_id) = get_credentials(
+            opts.credentials_path,
+            opts.impersonate_service_account)
+
+        validators = validators_for(opts, project_id)
 
         results = []
         for validator in validators:
@@ -411,9 +480,8 @@ def main(argv):
                 retcode = 1
 
         if retcode == 1 or opts.verbose:
-            s = json.dumps(results, sys.stdout, indent=4)
-            print(s)
-    except FileNotFoundError as error:
+            json.dump(results, sys.stdout, indent=4)
+    except FileNotFoundError as error:  # noqa: F821
         print(error)
         retcode = 1
 

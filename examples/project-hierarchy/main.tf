@@ -15,32 +15,40 @@
  */
 
 locals {
-  credentials_file_path = "${var.credentials_path}"
+  credentials_file_path = var.credentials_path
 }
 
 /******************************************
   Provider configuration
  *****************************************/
 provider "google" {
-  credentials = "${file(local.credentials_file_path)}"
-  version     = "~> 1.19"
+  credentials = file(local.credentials_file_path)
+  version     = "~> 3.6.0"
 }
 
 provider "google-beta" {
-  credentials = "${file(local.credentials_file_path)}"
-  version     = "~> 1.19"
+  credentials = file(local.credentials_file_path)
+  version     = "~> 3.6.0"
 }
 
 provider "gsuite" {
-  credentials             = "${file(local.credentials_file_path)}"
-  impersonated_user_email = "${var.admin_email}"
+  credentials             = file(local.credentials_file_path)
+  impersonated_user_email = var.admin_email
 
   oauth_scopes = [
     "https://www.googleapis.com/auth/admin.directory.group",
     "https://www.googleapis.com/auth/admin.directory.group.member",
   ]
 
-  version = "~> 0.1.9"
+  version = "~> 0.1.12"
+}
+
+provider "null" {
+  version = "~> 2.1"
+}
+
+provider "random" {
+  version = "~> 2.2"
 }
 
 resource "google_folder" "prod" {
@@ -50,20 +58,20 @@ resource "google_folder" "prod" {
 
 module "project-prod-gke" {
   source            = "../../modules/gsuite_enabled"
-  random_project_id = "true"
+  random_project_id = true
   name              = "hierarchy-sample-prod-gke"
-  org_id            = "${var.organization_id}"
-  billing_account   = "${var.billing_account}"
-  folder_id         = "${google_folder.prod.id}"
-  credentials_path  = "${local.credentials_file_path}"
+  org_id            = var.organization_id
+  billing_account   = var.billing_account
+  folder_id         = google_folder.prod.id
+  credentials_path  = local.credentials_file_path
 }
 
 module "project-factory" {
   source            = "../../modules/gsuite_enabled"
-  random_project_id = "true"
+  random_project_id = true
   name              = "hierarchy-sample-factory"
-  org_id            = "${var.organization_id}"
-  billing_account   = "${var.billing_account}"
-  folder_id         = "${google_folder.prod.id}"
-  credentials_path  = "${local.credentials_file_path}"
+  org_id            = var.organization_id
+  billing_account   = var.billing_account
+  folder_id         = google_folder.prod.id
+  credentials_path  = local.credentials_file_path
 }

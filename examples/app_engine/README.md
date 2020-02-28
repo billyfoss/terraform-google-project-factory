@@ -12,22 +12,23 @@ Expected variables:
 - `organization_id`
 - `billing_account`
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| admin\_email | Admin user email on Gsuite | string | - | yes |
-| billing\_account | The ID of the billing account to associate this project with | string | - | yes |
-| organization\_id | The organization id for the associated services | string | - | yes |
+| billing\_account | The ID of the billing account to associate this project with | string | n/a | yes |
+| folder\_id | The ID of a folder to host this project. | string | `""` | no |
+| location\_id | The location to serve the app from. | string | `"us-east4"` | no |
+| org\_id | The organization ID. | string | n/a | yes |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| app\_engine\_enabled\_example | Whether app engine is enabled |
-| domain\_example | The organization's domain |
-| project\_info\_example | The ID of the created project |
+| app\_name | Unique name of the app, usually apps/{PROJECT_ID}. |
+| default\_hostname | The default hostname for this app. |
+| location\_id | The location app engine is serving from |
+| project\_id | The project ID where app engine is created |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

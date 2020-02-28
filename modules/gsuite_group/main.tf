@@ -15,13 +15,16 @@
  */
 
 locals {
-  domain = "${var.domain != "" ? var.domain : data.google_organization.org.domain}"
-  email  = "${format("%s@%s", var.name, local.domain)}"
+  domain_list = concat(data.google_organization.org.*.domain, ["dummy"])
+  domain      = var.domain == "" ? element(local.domain_list, 0) : var.domain
+  email       = var.name == "" ? "" : format("%s@%s", var.name, local.domain)
 }
 
 /*****************************************
   Organization info retrieval
  *****************************************/
 data "google_organization" "org" {
-  organization = "${var.org_id}"
+  count        = var.domain == "" && var.name != "" ? 1 : 0
+  organization = var.org_id
 }
+

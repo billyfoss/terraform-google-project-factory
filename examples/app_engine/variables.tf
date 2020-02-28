@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
-variable "admin_email" {
-  description = "Admin user email on Gsuite"
+variable "org_id" {
+  description = "The organization ID."
+  type        = string
 }
 
-variable "organization_id" {
-  description = "The organization id for the associated services"
+variable "folder_id" {
+  description = "The ID of a folder to host this project."
+  type        = string
+  default     = ""
 }
 
 variable "billing_account" {
   description = "The ID of the billing account to associate this project with"
+  type        = string
+}
+
+variable "location_id" {
+  description = "The location to serve the app from."
+  default     = "us-east4"
 }

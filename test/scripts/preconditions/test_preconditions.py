@@ -109,21 +109,13 @@ class TestRequirements(unittest.TestCase):
 class TestOrgPermissions(unittest.TestCase):
     def test_base_permissions(self):
         org_perms = preconditions.OrgPermissions("1234567890")
-        self.assertEqual(
-            org_perms.permissions,
-            [
-                "resourcemanager.organizations.get",
-                "iam.serviceAccounts.setIamPolicy",
-            ]
-        )
+        self.assertEqual(org_perms.permissions, [])
 
     def test_shared_vpc_permissions(self):
         org_perms = preconditions.OrgPermissions("1234567890", shared_vpc=True)
         self.assertEqual(
             org_perms.permissions,
             [
-                "resourcemanager.organizations.get",
-                "iam.serviceAccounts.setIamPolicy",
                 "compute.subnetworks.setIamPolicy",
                 "compute.organizations.enableXpnResource",
             ]
@@ -134,8 +126,6 @@ class TestOrgPermissions(unittest.TestCase):
         self.assertEqual(
             org_perms.permissions,
             [
-                "resourcemanager.organizations.get",
-                "iam.serviceAccounts.setIamPolicy",
                 "resourcemanager.projects.create"
             ]
         )
@@ -155,7 +145,6 @@ class TestFolderPermissions(unittest.TestCase):
             folder_perms.permissions,
             [
                 "resourcemanager.projects.create",
-                "resourcemanager.folders.get",
             ]
         )
 

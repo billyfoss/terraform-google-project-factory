@@ -20,16 +20,15 @@ Expected variables:
 - `billing_account`
 - `credentials_path`
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| admin\_email | Admin user email on Gsuite | string | - | yes |
-| billing\_account | The ID of the billing account to associate this project with | string | - | yes |
-| credentials\_path | Path to a Service Account credentials file with permissions documented in the readme | string | - | yes |
-| organization\_id | The organization id for the associated services | string | - | yes |
+| admin\_email | Admin user email on Gsuite | string | n/a | yes |
+| billing\_account | The ID of the billing account to associate this project with | string | n/a | yes |
+| credentials\_path | Path to a service account credentials file with rights to run the Project Factory. If this file is absent Terraform will fall back to Application Default Credentials. | string | `""` | no |
+| organization\_id | The organization id for the associated services | string | n/a | yes |
 
 ## Outputs
 
@@ -39,4 +38,4 @@ Expected variables:
 | project\_info\_example | The ID of the created prod_gke project |
 | project\_info\_factory\_example | The ID of the created factory project |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
